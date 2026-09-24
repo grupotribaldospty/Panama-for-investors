@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panama for Investors | Grupo Tribaldos</title>
+<meta name="description" content="Interactive map of Panama residential areas: sale and rent price per m², distance to the airport and why people choose each area.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700;800&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#F3F5F8; --panel:#FFFFFF; --ink:#16223A; --muted:#5B667A; --line:#D9DEE6;
+  --navy:#1B2A4A; --accent:#5FA8D3; --chip:#EAF1F8;
+  --m1:#A9C3DE; --m2:#6E95C0; --m3:#3E6699; --m4:#1B2A4A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Red Hat Text",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:"Red Hat Display","Red Hat Text",system-ui,sans-serif;margin:0;line-height:1.15}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding:20px 24px 12px;max-width:1440px;margin:0 auto}
+header.top h1{font-size:clamp(22px,2.6vw,30px);font-weight:800;max-width:30ch}
+header.top p{margin:6px 0 0;color:var(--muted);max-width:70ch;font-size:14px}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+.views button{border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:500}
+.views button[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+.orient{max-width:1440px;margin:0 auto 12px;padding:0 24px}
+.orient div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;display:flex;gap:6px 20px;flex-wrap:wrap}
+.orient b{font-weight:700}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px;padding:0 24px 24px;max-width:1440px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:0 12px 16px}header.top{padding:16px 12px 12px}.orient{padding:0 12px}}
+#map{border-radius:14px;height:min(74vh,740px);min-height:420px;background:#dfe6ee;z-index:0}
+@media (max-width:900px){#map{height:62vh;min-height:360px}}
+
+.leaflet-tooltip.zlabel{background:rgba(255,255,255,.92);border:0;box-shadow:0 1px 3px rgba(0,0,0,.25);color:var(--ink);font:600 12px "Red Hat Text",sans-serif;padding:2px 6px;border-radius:4px}
+.leaflet-tooltip.zlabel::before{display:none}
+.leaflet-tooltip.poilabel{background:var(--navy);color:#fff;border:0;font:500 11px "Red Hat Text",sans-serif;padding:2px 6px}
+.air-icon{background:var(--navy);color:#fff;border-radius:6px;font:700 11px "Red Hat Text",sans-serif;display:flex;align-items:center;justify-content:center;gap:3px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap;padding:0 6px}
+.legend{background:rgba(255,255,255,.95);border-radius:10px;padding:8px 10px;font:12px "Red Hat Text",sans-serif;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.legend .row{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
+.legend .sw{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #fff}
+
+aside.panel{background:var(--panel);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;border:1px solid var(--line);align-self:start;max-height:min(74vh,740px);overflow:auto}
+@media (max-width:900px){aside.panel{max-height:none}}
+.panel .kind{font-size:13px;color:var(--muted)}
+.panel h2{font-size:24px;font-weight:800}
+.panel h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.panel p{margin:0}
+.panel ul{margin:0;padding-left:18px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--chip);border-radius:10px;padding:10px 12px}
+.stat .v{font-family:"Red Hat Display",sans-serif;font-weight:800;font-size:22px;line-height:1.1}
+.stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+.stat.wide{grid-column:1/-1}
+.src{font-size:11.5px;color:var(--muted)}
+.ch{display:grid;grid-template-columns:118px 1fr 64px;align-items:center;gap:2px 10px;margin:6px 0}
+.chn{font-size:13px;font-weight:500}
+.chv{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.chs{grid-column:1/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
+.bar{height:10px;background:var(--chip);border-radius:5px;overflow:hidden;display:block}
+.bar span{display:block;height:100%;background:var(--m3);border-radius:5px}
+.bar.empty{background:repeating-linear-gradient(90deg,var(--chip) 0 6px,transparent 6px 10px)}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{flex:1;min-width:140px;text-align:center;padding:9px 12px;border-radius:8px;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-weight:500;font-size:14px}
+.links a:hover{background:var(--chip)}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 10px;font-size:13.5px}
+
+section.compare{max-width:1440px;margin:0 auto;padding:0 24px 32px}
+@media (max-width:900px){section.compare{padding:0 12px 24px}}
+section.compare h2{font-size:20px;font-weight:800;margin:8px 0 4px}
+section.compare > p{color:var(--muted);margin:0 0 12px;max-width:85ch;font-size:14px}
+.tablewrap{overflow-x:auto;background:var(--panel);border-radius:14px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--chip)}
+tbody tr.sel{background:var(--chip);box-shadow:inset 3px 0 0 var(--accent)}
+footer{max-width:1440px;margin:0 auto;padding:0 24px 32px;color:var(--muted);font-size:12.5px}
+footer p{margin:4px 0;max-width:110ch}
+@media (max-width:900px){footer{padding:0 12px 24px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Panama for investors: where each area is and what it costs</h1>
+    <p>Tap an area to see the price per m² on each sales channel, rents, distance to the airport and why people look for it. Switch to satellite view with the layer control on the map.</p>
+  </div>
+  <div class="views" role="group" aria-label="Change map view">
+    <button data-view="pais" aria-pressed="false">All of Panama</button>
+    <button data-view="ciudad" aria-pressed="true">Panama City</button>
+    <button data-view="playas" aria-pressed="false">Pacific beaches</button>
+  </div>
+</header>
+
+<div class="orient"><div>
+  <span><b>New to Panama?</b></span>
+  <span>The city sits on the Pacific Ocean, at the entrance to the Canal.</span>
+  <span>The international airport (Tocumen) is to the east, 15–35 min from the residential areas.</span>
+  <span>The most sought-after areas line the bay.</span>
+  <span>The beaches are 1–2 h west; Boquete is a 1 h flight.</span>
+</div></div>
+
+<main>
+  <div id="map" role="region" aria-label="Map of Panama with residential areas"></div>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+</main>
+
+<section class="compare">
+  <h2>Compare areas by channel</h2>
+  <p>Apartment sale price per m² on each channel and their average. Likely closing price deducts 9%, the average gap between asking and closing price on the MLS (H2 2025). Gross yield = annual rent ÷ average price; shown only where two rent sources agree and there are at least two sales channels. Beach rents mix in vacation rentals, so no yield is shown there. * fewer than 5 listings. Tap a row to see it on the map.</p>
+  <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<footer>
+  <p><b>Sources.</b> Encuentra24: the portal's price-per-m² statistics, average of the last 3 published months (Jun–Aug 2026). MLS: public MLS ACOBIR inventory reviewed Sep 24, 2026, median (apartments; houses and apartments in Boquete). Bank-owned sales: one bank's catalog of 29 apartments (Sep 2026); units only exist in some areas. Rent: average of Encuentra24 and the PanamaProp index (May 2026). Negotiation: Servmor Realty MLS report, H2 2025. Casco Viejo: PMPanama 2026.</p>
+  <p><b>How to read it.</b> These are sellers' asking prices; closing prices are usually lower. Driving times are approximate, without traffic; at rush hour they can double. Area and point-of-interest locations are approximate. All prices in US dollars (Panama uses the USD).</p>
+  <p>Prepared by Grupo Tribaldos. For reference only; not financial or tax advice.</p>
+</footer>
+
+<script>
+const DATA = {"Z": [{"id": "cde", "e24": 2640, "e24r": 16.3, "g": "ciudad", "name": "Costa del Este", "lon": -79.462, "lat": 9.012, "sale": 2762, "saleN": 273, "mls": 2366, "mlsN": 30, "rent": 13.45, "rentSrc": "Portals, 2026", "air": "15 min", "airKm": 12, "why": "Master-planned community with wide streets and the closest area to the airport. International schools, corporate offices and the Town Center mall. Preferred by families and executives.", "shops": ["Town Center Costa del Este", "Supermarkets and restaurants inside the community", "Direct access to the Corredor Sur highway"], "watch": "High price per m² and high HOA fees: gross yield is among the lowest."}, {"id": "sm", "e24": 3503, "e24r": 18.7, "g": "ciudad", "name": "Santa María", "lon": -79.47, "lat": 9.036, "sale": null, "mls": 3664, "mlsN": 3, "rent": null, "rentNote": "$16–28 (3 luxury listings)", "air": "15–20 min", "airKm": 14, "why": "Gated community built around a golf course. The most exclusive residential area in the city.", "shops": ["Golf club", "Close to Costa del Este and Town Center"], "watch": "Luxury market with few listings. Does not fit a $120–250K budget."}, {"id": "coco", "e24": 2696, "e24r": 20, "g": "ciudad", "name": "Coco del Mar", "lon": -79.495, "lat": 8.993, "sale": null, "mls": 2629, "mlsN": 9, "rent": null, "air": "20 min", "airKm": 16, "why": "Quiet residential neighborhood by the sea, between San Francisco and Costa del Este.", "shops": ["Close to Multiplaza", "Restaurants on Vía Israel"], "watch": "Not enough rental data."}, {"id": "pp", "e24": 2699, "e24r": 15, "g": "ciudad", "name": "Punta Pacífica", "lon": -79.508, "lat": 8.981, "sale": 2696, "saleN": 299, "mls": 2555, "mlsN": 29, "rent": 13.44, "rentSrc": "Portals, 2026", "air": "20 min", "airKm": 18, "why": "Oceanfront towers with bay views. Next to Pacífica Salud hospital and Multiplaza, the city's upscale mall. Very popular with foreigners.", "shops": ["Multiplaza", "Pacífica Salud hospital", "Access to the Corredor Sur highway"], "watch": "You pay for the view: gross yield is around 6%."}, {"id": "pait", "e24": 2109, "e24r": 14.7, "bank": 1439, "bankN": 3, "bankNote": "PH Perlas del Pacífico", "g": "ciudad", "name": "Punta Paitilla", "lon": -79.517, "lat": 8.978, "sale": null, "mls": 1650, "mlsN": 7, "rent": 10.3, "rentSrc": "1 reference building", "air": "20–25 min", "airKm": 19, "why": "Oceanfront towers, older than Punta Pacífica. Similar views for a lower price per m², next to the Cinta Costera waterfront.", "shops": ["Multiplaza a few blocks away", "Cinta Costera waterfront", "Supermarkets nearby"], "watch": "1980s–90s buildings: check special assessments and the building's condition."}, {"id": "sf", "e24": 1912, "e24r": 12, "e24Note": "Vía Porras", "bank": 2050, "bankN": 4, "bankNote": "Harmony, Premium, Tao, Quadrat", "g": "ciudad", "name": "San Francisco", "lon": -79.505, "lat": 8.999, "sale": 2038, "saleN": 405, "mls": 1733, "mlsN": 38, "rent": 11.61, "rentSrc": "Portals, 2026", "air": "20–25 min", "airKm": 18, "why": "Central neighborhood next to Parque Omar, the largest urban park in the city. Lots of restaurants and buildings of every age.", "shops": ["Parque Omar", "Vía Porras and Vía Israel", "Close to Multiplaza"], "watch": "The area with the most inventory: good for finding motivated sellers."}, {"id": "obarrio", "e24": 2115, "e24r": 13, "g": "ciudad", "name": "Obarrio", "lon": -79.522, "lat": 8.987, "sale": 2057, "saleN": 52, "mls": 1729, "mlsN": 8, "rent": 12.59, "rentSrc": "Portals, 2026", "air": "25–30 min", "airKm": 20, "why": "Financial district, next to Calle 50 and the banks. Many people rent here to live close to work.", "shops": ["Calle 50 and banks", "Restaurants and business hotels", "Close to Multiplaza"], "watch": "Best gross yield among central areas according to portals."}, {"id": "marbella", "e24": 2577, "e24r": 13.7, "g": "ciudad", "name": "Marbella", "lon": -79.525, "lat": 8.982, "sale": 3119, "saleN": 50, "mls": 1606, "mlsN": 6, "rent": null, "air": "25–30 min", "airKm": 20, "why": "Between Obarrio and Paitilla, with restaurants and nightlife.", "shops": ["Calle Uruguay and restaurants", "Cinta Costera waterfront"], "watch": "Portals and the MLS show very different prices: it depends heavily on the building."}, {"id": "bv", "e24": 2509, "e24r": 15, "e24Note": "Av. Balboa", "bank": 1542, "bankN": 2, "bankNote": "Belle View and Oritela", "g": "ciudad", "name": "Bella Vista & Av. Balboa", "lon": -79.531, "lat": 8.976, "sale": 2204, "saleN": 181, "mls": 2457, "mlsN": 13, "rent": 13, "rentSrc": "Portals, 2026", "air": "25–30 min", "airKm": 21, "why": "Facing the Cinta Costera, the waterfront promenade. Towers with bay views on Avenida Balboa and older buildings further inland.", "shops": ["Cinta Costera waterfront", "Supermarkets and banks", "Metro"], "watch": "Good gross yield; check noise and traffic depending on the street."}, {"id": "cangrejo", "e24": 1927, "e24r": 12.3, "g": "ciudad", "name": "El Cangrejo", "lon": -79.532, "lat": 8.993, "sale": 2042, "saleN": 94, "mls": 1871, "mlsN": 8, "rent": 11.76, "rentSrc": "Portals, 2026", "air": "30 min", "airKm": 22, "why": "Walkable neighborhood with Vía Argentina, restaurants and a Metro station. Very popular with young professionals and foreigners.", "shops": ["Vía Argentina", "Metro line 1", "Vía España"], "watch": "Buildings of every age; steady rental demand."}, {"id": "carmen", "e24": 1795, "e24r": 11.7, "g": "ciudad", "name": "El Carmen", "lon": -79.527, "lat": 8.99, "sale": null, "mls": 2286, "mlsN": 4, "rent": null, "air": "30 min", "airKm": 22, "why": "Central, between El Cangrejo and Obarrio, close to Vía España and the Metro.", "shops": ["Vía España", "Metro line 1"], "watch": "Small MLS sample."}, {"id": "casco", "e24": 4218, "e24r": 20.7, "g": "ciudad", "name": "Casco Viejo (Old Town)", "lon": -79.535, "lat": 8.953, "sale": null, "saleNote": "Over $4,000 in restored buildings", "mls": null, "rent": 12.1, "rentSrc": "1 furnished listing", "air": "30–35 min", "airKm": 27, "why": "Historic district and UNESCO World Heritage Site. Restored colonial buildings, tourism, restaurants and bars.", "shops": ["Plazas, restaurants and boutique hotels", "Cinta Costera waterfront"], "watch": "High price per m², little parking and nighttime noise. Many buildings restrict short-term rentals."}, {"id": "albrook", "e24": 2029, "e24r": 13, "g": "ciudad", "name": "Albrook", "lon": -79.556, "lat": 8.982, "sale": null, "mls": 1720, "mlsN": 5, "rent": null, "air": "35 min", "airKm": 28, "why": "Former Canal Zone with lots of green space. Home to Albrook Mall, the bus terminal and the domestic airport.", "shops": ["Albrook Mall", "Albrook domestic airport", "Bus terminal"], "watch": "Not enough rental data."}, {"id": "clayton", "e24": 2190, "e24r": 13.3, "g": "ciudad", "name": "Clayton", "lon": -79.575, "lat": 9.004, "sale": null, "mls": 2163, "mlsN": 5, "rent": null, "rentNote": "$13.5–16.6 (2 listings)", "air": "35–40 min", "airKm": 32, "why": "Former Canal Zone next to Ciudad del Saber. Green and quiet, with international schools and embassies. Preferred by families and diplomats.", "shops": ["Ciudad del Saber", "International schools"], "watch": "Farther from the airport and with little apartment inventory."}, {"id": "condado", "g": "ciudad", "name": "Condado del Rey", "lon": -79.545, "lat": 9.035, "sale": null, "mls": 1565, "mlsN": 8, "rent": null, "air": "30 min", "airKm": 24, "why": "Middle-class area to the north, close to Altaplaza mall. Lower entry prices.", "shops": ["Altaplaza Mall", "Vía Centenario and Corredor Norte highway"], "watch": "Rents are lower than in the center."}, {"id": "chame", "e24": 3159, "g": "playas", "name": "Punta Chame", "lon": -79.7, "lat": 8.655, "sale": null, "mls": 3192, "mlsN": 5, "rent": null, "rentNote": "Vacation rental market", "air": "1 h from the city", "why": "Peninsula known for kitesurfing. The closest beach to the city.", "shops": ["Few services: supermarkets in Coronado or Chame"], "watch": "Few listings; new-project prices."}, {"id": "gorgona", "e24": 2119, "g": "playas", "name": "Nueva Gorgona", "lon": -79.888, "lat": 8.549, "sale": null, "mls": 2308, "mlsN": 15, "rent": null, "rentNote": "Vacation rental market", "air": "1 h 05 min from the city", "why": "Beachfront condo towers. Popular with locals for weekends.", "shops": ["Basic services; supermarkets in Coronado"], "watch": "Long-term rentals are scarce; higher occupancy in the dry season."}, {"id": "coronado", "e24": 2016, "g": "playas", "name": "Coronado", "lon": -79.905, "lat": 8.527, "sale": null, "mls": 1999, "mlsN": 20, "rent": 12.8, "rentSrc": "1 listing", "air": "1 h 15 min from the city", "why": "The most established beach community: golf course, supermarkets, clinics and many foreign residents and retirees.", "shops": ["Supermarkets and shopping plazas", "Clinics", "Golf club"], "watch": "Long-term rentals exist but little data is published."}, {"id": "sancarlos", "e24": 2038, "e24r": 11, "g": "playas", "name": "San Carlos", "lon": -79.957, "lat": 8.483, "sale": null, "mls": 2230, "mlsN": 7, "rent": null, "rentNote": "Vacation rental market", "air": "1 h 25 min from the city", "why": "Quieter, less developed beaches than Coronado.", "shops": ["Basic services; shops in Coronado"], "watch": "Small market."}, {"id": "blanca", "e24": 2321, "e24r": 15, "e24Note": "El Farallón", "g": "playas", "name": "Playa Blanca", "lon": -80.118, "lat": 8.366, "sale": null, "mls": 1629, "mlsN": 21, "rent": null, "rentNote": "Vacation rental market", "air": "1 h 45 min from the city", "why": "All-inclusive resorts and beach condos. Close to Río Hato airport.", "shops": ["Resort hotels and restaurants", "Río Hato airport"], "watch": "Lowest price per m² among the beaches, but it depends on tourism."}, {"id": "buena", "g": "playas", "name": "Buenaventura", "lon": -80.152, "lat": 8.352, "sale": null, "mls": 2613, "mlsN": 5, "rent": null, "rentNote": "Vacation rental market", "air": "1 h 50 min from the city", "why": "Luxury beach community with a hotel, marina and club.", "shops": ["Services inside the community"], "watch": "Luxury segment, outside an investment budget."}, {"id": "boquete", "e24": 3612, "e24Note": "apartments only", "noAvg": true, "g": "pais", "name": "Boquete", "lon": -82.441, "lat": 8.779, "sale": null, "mls": 1873, "mlsN": 52, "mlsLabel": "houses and apartments", "rent": 11, "rentSrc": "5 long-term listings", "rentNote": null, "air": "45 min from David airport; 7 h by road from the city", "why": "Mountain town at about 1,200 m (3,900 ft), with a cool climate and coffee farms. A well-known destination for foreign retirees.", "shops": ["Supermarkets and restaurants in town", "Hospitals in David"], "watch": "Low long-term rents ($400–650 for a typical house): does not reach an investment-grade yield."}], "AIRPORTS": [{"id": "PTY", "name": "Tocumen Airport (PTY)", "lon": -79.3835, "lat": 9.0714, "views": ["pais", "ciudad"], "txt": "Main international airport and Copa Airlines hub. This is where you would arrive."}, {"id": "PAC", "name": "Albrook Airport (PAC)", "lon": -79.5556, "lat": 8.9734, "views": [], "txt": "Domestic flights: to David (Boquete) and other destinations in Panama."}, {"id": "DAV", "name": "David Airport (DAV)", "lon": -82.435, "lat": 8.391, "views": ["pais"], "txt": "Gateway to Boquete, about 45 minutes by road."}, {"id": "RIH", "name": "Río Hato Airport (RIH)", "lon": -80.128, "lat": 8.375, "views": ["pais", "playas"], "txt": "Next to Playa Blanca and Buenaventura. Few scheduled flights."}], "POIS": [{"n": "Multiplaza", "lon": -79.5115, "lat": 8.9855}, {"n": "Pacífica Salud hospital", "lon": -79.5055, "lat": 8.9795}, {"n": "Town Center", "lon": -79.4645, "lat": 9.0135}, {"n": "Albrook Mall", "lon": -79.5495, "lat": 8.9745}, {"n": "Parque Omar (park)", "lon": -79.501, "lat": 8.9985}, {"n": "Cinta Costera (waterfront)", "lon": -79.5285, "lat": 8.9735}, {"n": "Ciudad del Saber (City of Knowledge)", "lon": -79.5835, "lat": 9.004}, {"n": "Altaplaza Mall", "lon": -79.5545, "lat": 9.0385}, {"n": "Calle 50 (banks)", "lon": -79.5205, "lat": 8.9845}]};
+const Z = DATA.Z, AIRPORTS = DATA.AIRPORTS, POIS = DATA.POIS;
+
+
+const VIEWS = {
+  pais:   [[7.05,-83.2],[9.75,-77.1]],
+  ciudad: [[8.94,-79.60],[9.08,-79.37]],
+  playas: [[8.30,-80.25],[8.72,-79.62]]
+};
+const CLUSTERS = [
+  {id:"c_city", name:"Panama City", lon:-79.52, lat:8.99, go:"ciudad"},
+  {id:"c_beach", name:"Pacific beaches", lon:-79.92, lat:8.52, go:"playas"}
+];
+const LBL = {pait:"bottom", bv:"left", carmen:"left", marbella:"left", obarrio:"top", casco:"left", albrook:"left", clayton:"left", condado:"left", gorgona:"left", blanca:"left", buena:"bottom"};
+
+const NEG = 0.09;
+const fmt = n => n==null ? "—" : "$" + Math.round(n).toLocaleString("en-US");
+const fmt2 = n => n==null ? "—" : "$" + n.toFixed(1);
+function chans(z){ return [z.e24, z.mls, z.bank].filter(v => v!=null); }
+function avg(z){ if(z.noAvg) return null; const c = chans(z); return c.length ? c.reduce((a,b)=>a+b,0)/c.length : null; }
+function close(z){ const a = avg(z); return a ? a*(1-NEG) : null; }
+function rentAvg(z){ const r = [z.e24r, (z.rentSrc==="Portals, 2026" ? z.rent : null)].filter(v => v!=null); return r.length ? r.reduce((a,b)=>a+b,0)/r.length : null; }
+function gross(z){ const a = avg(z), r = rentAvg(z); if(!a || !r || chans(z).length<2 || z.e24r==null || z.rentSrc!=="Portals, 2026") return null; return r*12/a*100; }
+function colorFor(v){ if(v==null||v<1800) return "#A9C3DE"; if(v<2200) return "#6E95C0"; if(v<2700) return "#3E6699"; return "#1B2A4A"; }
+
+const map = L.map("map", {zoomControl:true, scrollWheelZoom:true, attributionControl:true});
+const base = {
+  "Map": L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {maxZoom:19, subdomains:"abcd", attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}),
+  "Satellite": L.layerGroup([
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution:"Imagery &copy; Esri, Maxar, Earthstar Geographics"}),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {maxZoom:19})
+  ])
+};
+base["Map"].addTo(map);
+const poiLayer = L.layerGroup();
+L.control.layers(base, {"Shops and hospitals": poiLayer}, {position:"topright", collapsed:false}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+
+const legend = L.control({position:"bottomleft"});
+legend.onAdd = () => { const d = L.DomUtil.create("div","legend"); d.innerHTML = `<b>Average sale price per m²</b><div class="row"><span class="sw" style="background:#A9C3DE"></span>under $1,800 <span class="sw" style="background:#6E95C0"></span>$1,800–2,200</div><div class="row"><span class="sw" style="background:#3E6699"></span>$2,200–2,700 <span class="sw" style="background:#1B2A4A"></span>over $2,700</div><div class="row" id="hint" style="color:#5B667A">Zoom in to see all names</div>`; return d; };
+legend.addTo(map);
+
+POIS.forEach(p => L.circleMarker([p.lat,p.lon], {radius:5, color:"#fff", weight:1.5, fillColor:"#16223A", fillOpacity:1}).bindTooltip(p.n, {className:"poilabel", direction:"top"}).addTo(poiLayer));
+
+let view = "ciudad", selected = "pp";
+const zoneLayer = L.layerGroup().addTo(map);
+const airLayer = L.layerGroup().addTo(map);
+let route = null;
+const markers = {};
+
+function airIcon(a){ const label = a.id==="PTY" ? "✈ Tocumen Airport" : "✈ " + a.id; return L.divIcon({className:"", html:`<div class="air-icon" style="height:24px">${label}</div>`, iconSize:null, iconAnchor:[12,12]}); }
+
+function draw(){
+  zoneLayer.clearLayers(); airLayer.clearLayers(); for(const k in markers) delete markers[k];
+  const zs = view==="pais" ? Z.filter(z => z.g==="pais").concat(CLUSTERS) : Z.filter(z => z.g===view);
+  zs.forEach(z => {
+    const m = L.circleMarker([z.lat,z.lon], {radius: z.go?12:9, color: z.id===selected ? "#5FA8D3" : "#fff", weight: z.id===selected?4:2, fillColor: z.go ? "#5FA8D3" : colorFor(avg(z) ?? z.e24 ?? z.mls), fillOpacity:1});
+    m.bindTooltip(z.name, {permanent:true, className:"zlabel", direction: LBL[z.id] || "right", offset: LBL[z.id]==="left"?[-8,0]:LBL[z.id]==="top"?[0,-8]:LBL[z.id]==="bottom"?[0,8]:[8,0]});
+    m.on("click", () => pick(z));
+    m.addTo(zoneLayer); markers[z.id] = m;
+  });
+  AIRPORTS.filter(a => a.views.includes(view)).forEach(a => L.marker([a.lat,a.lon], {icon:airIcon(a), keyboard:false}).bindPopup(`<b>${a.name}</b><br>${a.txt}`).addTo(airLayer));
+  drawRoute(); labels();
+}
+
+const CORE = new Set(["pait","bv","carmen","marbella","obarrio","cangrejo","sf","coco","albrook"]);
+function labels(){
+  const zin = map.getZoom() >= 13;
+  for(const k in markers){ const m = markers[k]; if(zin || !CORE.has(k) || k===selected || view!=="ciudad") m.openTooltip(); else m.closeTooltip(); }
+  const h = document.getElementById("hint"); if(h) h.style.display = (view==="ciudad" && !zin) ? "" : "none";
+}
+map.on("zoomend", labels);
+function drawRoute(){
+  if(route){ map.removeLayer(route); route = null; }
+  const z = Z.find(z => z.id===selected);
+  if(!z || view!=="ciudad" || z.g!=="ciudad") return;
+  route = L.polyline([[z.lat,z.lon],[9.0714,-79.3835]], {color:"#5FA8D3", weight:3, dashArray:"6 6"}).bindTooltip(`${z.air} to the airport`, {sticky:true}).addTo(map);
+}
+
+function pick(z){
+  if(z.go){ setView(z.go); return; }
+  selected = z.id;
+  for(const k in markers){ markers[k].setStyle({color: k===selected?"#5FA8D3":"#fff", weight: k===selected?4:2}); }
+  drawRoute(); labels(); showPanel(z); markTable();
+}
+
+function showPanel(z){
+  const g = gross(z), a = avg(z), c = close(z), r = rentAvg(z);
+  const kind = z.g==="ciudad" ? "Panama City" : z.g==="playas" ? "Pacific beach" : "Mountains, Chiriquí province";
+  const rows = [
+    ["Encuentra24", z.e24, z.e24 ? `average Jun–Aug 2026${z.e24Note? ", "+z.e24Note:""}` : "no data"],
+    ["MLS ACOBIR", z.mls, z.mls ? `median, ${z.mlsN} listings${z.mlsLabel? ", "+z.mlsLabel:""}` : "no data"],
+    ["Bank-owned", z.bank, z.bank ? `${z.bankN} units: ${z.bankNote}` : "no units in the catalog"]
+  ];
+  const max = Math.max(...rows.map(x=>x[1]||0), a||0, 1);
+  const bar = v => v ? `<span class="bar"><span style="width:${(v/max*100).toFixed(0)}%"></span></span>` : `<span class="bar empty"></span>`;
+  const chRows = rows.map(x => `<div class="ch"><div class="chn">${x[0]}</div>${bar(x[1])}<div class="chv">${x[1]?fmt(x[1]):"—"}</div><div class="chs">${x[2]}</div></div>`).join("");
+  const q = `${z.lat},${z.lon}`;
+  document.getElementById("panel").innerHTML = `
+    <div><div class="kind">${kind}</div><h2>${z.name}</h2></div>
+    <div><h3>Sale price per m², by channel</h3>${chRows}${z.id==="casco"?'<p class="src">Restored buildings can exceed $4,000/m² according to PMPanama.</p>':""}</div>
+    <div class="stats">
+      <div class="stat"><div class="v">${a?fmt(a):"—"}</div><div class="l">${a?`Average of ${chans(z).length} channel${chans(z).length>1?"s":""}`:(z.noAvg?"Not averaged: the channels measure different things":"No data")}</div></div>
+      <div class="stat"><div class="v">${c?fmt(c):"—"}</div><div class="l">Likely closing price (−9% average negotiation)</div></div>
+      <div class="stat"><div class="v">${r?fmt2(r):"—"}</div><div class="l">${r?"Rent per m² per month (portal average)":(z.rentNote||"Rent: sample too small")}</div></div>
+      <div class="stat"><div class="v">${g?g.toFixed(1)+"%":"—"}</div><div class="l">${g?"Gross yield on asking price":"Yield: no two reliable rent sources"}</div></div>
+      <div class="stat wide"><div class="v" style="font-size:18px">${z.air}</div><div class="l">${z.g==="ciudad" ? "To Tocumen Airport by car, without traffic (approx. " + z.airKm + " km)" : "Approximate travel time"}</div></div>
+    </div>
+    <div class="links"><a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Open in Google Maps</a><a href="https://earth.google.com/web/search/${q}" target="_blank" rel="noopener">View in Google Earth</a></div>
+    <div><h3>Why people choose it</h3><p>${z.why}</p></div>
+    <div><h3>What's nearby</h3><ul>${z.shops.map(s=>`<li>${s}</li>`).join("")}</ul></div>
+    <p class="note">${z.watch}</p>`;
+}
+
+function setView(v){
+  view = v;
+  document.querySelectorAll(".views button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view===v));
+  const first = v==="ciudad" ? "pp" : v==="playas" ? "coronado" : "boquete";
+  if(!Z.find(z => z.id===selected && z.g===v)) selected = first;
+  if(v==="ciudad") poiLayer.addTo(map); else map.removeLayer(poiLayer);
+  map.fitBounds(VIEWS[v], {padding:[10,10]});
+  draw(); showPanel(Z.find(z => z.id===selected)); markTable();
+}
+
+const COLS = [
+  {k:"name", t:"Area"}, {k:"e24", t:"Encuentra24", num:true}, {k:"mls", t:"MLS", num:true}, {k:"bank", t:"Bank-owned", num:true},
+  {k:"avg", t:"Average", num:true}, {k:"close", t:"Likely close", num:true}, {k:"rent", t:"Rent $/m²", num:true},
+  {k:"gross", t:"Gross yield", num:true}, {k:"air", t:"Distance"}
+];
+let sortK = "avg", sortDir = -1;
+function rows(){ return Z.map(z => ({id:z.id, name:z.name, g:z.g, e24:z.e24??null, mls:z.mls??null, bank:z.bank??null, avg:avg(z), close:close(z), rent:rentAvg(z), gross:gross(z), air:z.air, mlsTxt: z.mls ? fmt(z.mls)+((z.mlsN||0)<5?" *":"") : "—"})); }
+function markTable(){ document.querySelectorAll("#tbl tbody tr").forEach(tr => tr.classList.toggle("sel", tr.dataset.id===selected)); }
+function drawTable(){
+  document.querySelector("#tbl thead").innerHTML = "<tr>" + COLS.map(c => `<th class="${c.num?"num":""}" data-k="${c.k}" scope="col" aria-sort="${sortK===c.k?(sortDir<0?"descending":"ascending"):"none"}">${c.t}${sortK===c.k?(sortDir<0?" ↓":" ↑"):""}</th>`).join("") + "</tr>";
+  const r = rows().sort((a,b) => { const x=a[sortK], y=b[sortK]; if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return (typeof x==="string"? x.localeCompare(y) : x-y)*sortDir; });
+  document.querySelector("#tbl tbody").innerHTML = r.map(x => `<tr data-id="${x.id}" tabindex="0" class="${x.id===selected?"sel":""}"><td><b>${x.name}</b></td><td class="num">${fmt(x.e24)}</td><td class="num">${x.mlsTxt}</td><td class="num">${fmt(x.bank)}</td><td class="num"><b>${fmt(x.avg)}</b></td><td class="num">${fmt(x.close)}</td><td class="num">${x.rent?fmt2(x.rent):"—"}</td><td class="num">${x.gross?x.gross.toFixed(1)+"%":"—"}</td><td>${x.air}</td></tr>`).join("");
+  document.querySelectorAll("#tbl th").forEach(h => h.onclick = () => { const k2=h.dataset.k; if(sortK===k2) sortDir*=-1; else { sortK=k2; sortDir=(k2==="name"||k2==="air")?1:-1; } drawTable(); });
+  document.querySelectorAll("#tbl tbody tr").forEach(tr => { const go = () => { const z = Z.find(z => z.id===tr.dataset.id); selected = z.id; setView(z.g); document.getElementById("map").scrollIntoView({behavior:"smooth", block:"start"}); }; tr.onclick = go; tr.onkeydown = e => { if(e.key==="Enter") go(); }; });
+}
+
+document.querySelectorAll(".views button").forEach(b => b.onclick = () => setView(b.dataset.view));
+setView("ciudad");
+drawTable();
+</script>
+</body>
+</html>
