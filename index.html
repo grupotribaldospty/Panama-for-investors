@@ -87,6 +87,24 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--chip)}
 tbody tr.sel{background:var(--chip);box-shadow:inset 3px 0 0 var(--accent)}
+
+section.costs{max-width:1440px;margin:0 auto;padding:0 24px 32px}
+@media (max-width:900px){section.costs{padding:0 12px 24px}}
+section.costs > h2{font-size:20px;font-weight:800;margin:8px 0 4px}
+section.costs > p{color:var(--muted);margin:0 0 12px;max-width:85ch;font-size:14px}
+.cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.cgrid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.card h3{font-size:16px;font-weight:800}
+.card p{margin:0;font-size:14px}
+.card table{min-width:0;font-size:13.5px}
+.card th,.card td{padding:6px 8px;white-space:normal}
+.big{font-family:"Red Hat Display",sans-serif;font-weight:800;font-size:26px;line-height:1.1}
+.calc label{display:grid;grid-template-columns:1fr 110px;align-items:center;gap:8px;font-size:13.5px;margin:4px 0}
+.calc input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;text-align:right}
+.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.res tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+.res tr.neg td:last-child{color:#8A2E2E}
 footer{max-width:1440px;margin:0 auto;padding:0 24px 32px;color:var(--muted);font-size:12.5px}
 footer p{margin:4px 0;max-width:110ch}
 @media (max-width:900px){footer{padding:0 12px 24px}}
@@ -124,8 +142,46 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
 </section>
 
+
+<section class="costs" id="costs">
+  <h2>What it costs to own an apartment in Panama</h2>
+  <p>Two fixed costs come out of the rent every year: the building's HOA fee and the annual property tax. Use the calculator to see how much of the rent is left.</p>
+  <div class="cgrid">
+    <div class="card">
+      <h3>HOA fee (cuota de mantenimiento)</h3>
+      <div><div class="big">$1.72 per m² / month</div><p class="src">Median of 88 apartments: 62 MLS listings and 26 bank-owned units, Sep 2026. Middle half pays $1.50–2.07. Published guides cite $1.50–3.00.</p></div>
+      <p>Paid monthly to the building (PH). It covers security, cleaning, elevators, common-area power and water, the pool, gym and the building's insurance. Towers with many amenities pay more.</p>
+      <p><b>Example:</b> a 90 m² apartment pays about <b>$155 a month</b>, around <b>13% of the rent</b> in central areas.</p>
+      <p class="note">Before buying, ask for the building's reserve fund and any approved special assessments. Older buildings often need them for elevators, plumbing or façades.</p>
+    </div>
+    <div class="card">
+      <h3>Property tax (impuesto de inmueble)</h3>
+      <p>Charged every year on the registered (cadastral) value. When you buy, that value is updated to your purchase price. A rental property uses this progressive table, applied in brackets:</p>
+      <table><thead><tr><th>Part of the value</th><th class="num">Rate</th></tr></thead><tbody>
+        <tr><td>Up to $30,000</td><td class="num">0%</td></tr>
+        <tr><td>$30,001 – $250,000</td><td class="num">0.6%</td></tr>
+        <tr><td>$250,001 – $500,000</td><td class="num">0.8%</td></tr>
+        <tr><td>Over $500,000</td><td class="num">1.0%</td></tr>
+      </tbody></table>
+      <p><b>Example:</b> a $160,000 apartment pays (160,000 − 30,000) × 0.6% = <b>$780 a year</b>, about 0.5% of its price and 5% of the rent.</p>
+      <p class="src">A home you live in (primary residence) uses a lower table: 0% up to $120,000, then 0.5% and 0.7%. It does not apply to rentals. Some newer buildings still have a temporary exemption on the construction value; confirm it for each unit. Same rates for foreigners and locals.</p>
+    </div>
+    <div class="card calc">
+      <h3>How much of the rent is left?</h3>
+      <label>Purchase price ($)<input type="number" id="c_price" value="160000" step="1000" min="0"></label>
+      <label>Size (m²)<input type="number" id="c_m2" value="90" step="1" min="1"></label>
+      <label>Monthly rent ($)<input type="number" id="c_rent" value="1300" step="25" min="0"></label>
+      <label>HOA per m² / month ($)<input type="number" id="c_hoa" value="1.72" step="0.05" min="0"></label>
+      <label>Vacant months per year<input type="number" id="c_vac" value="1" step="0.5" min="0" max="12"></label>
+      <label>Property manager (% of rent)<input type="number" id="c_mgmt" value="10" step="1" min="0"></label>
+      <table class="res"><tbody id="c_out"></tbody></table>
+      <p class="src">Also assumes repairs and reserve at 5% of rent and $250 insurance. Income tax uses the individual table (0% up to $11,000 of net income, 15% up to $50,000, 25% above) as if this were the only Panama income; confirm the structure with a tax advisor.</p>
+    </div>
+  </div>
+</section>
+
 <footer>
-  <p><b>Sources.</b> Encuentra24: the portal's price-per-m² statistics, average of the last 3 published months (Jun–Aug 2026). MLS: public MLS ACOBIR inventory reviewed Sep 24, 2026, median (apartments; houses and apartments in Boquete). Bank-owned sales: one bank's catalog of 29 apartments (Sep 2026); units only exist in some areas. Rent: average of Encuentra24 and the PanamaProp index (May 2026). Negotiation: Servmor Realty MLS report, H2 2025. Casco Viejo: PMPanama 2026.</p>
+  <p><b>Sources.</b> HOA fees: MLS ACOBIR and bank catalog listings with fee and size (88 apartments, Sep 2026). Property and income tax rates: DGI tables (Law 66 of 2017). Encuentra24: the portal's price-per-m² statistics, average of the last 3 published months (Jun–Aug 2026). MLS: public MLS ACOBIR inventory reviewed Sep 24, 2026, median (apartments; houses and apartments in Boquete). Bank-owned sales: one bank's catalog of 29 apartments (Sep 2026); units only exist in some areas. Rent: average of Encuentra24 and the PanamaProp index (May 2026). Negotiation: Servmor Realty MLS report, H2 2025. Casco Viejo: PMPanama 2026.</p>
   <p><b>How to read it.</b> These are sellers' asking prices; closing prices are usually lower. Driving times are approximate, without traffic; at rush hour they can double. Area and point-of-interest locations are approximate. All prices in US dollars (Panama uses the USD).</p>
   <p>Prepared by Grupo Tribaldos. For reference only; not financial or tax advice.</p>
 </footer>
@@ -147,6 +203,7 @@ const CLUSTERS = [
 const LBL = {pait:"bottom", bv:"left", carmen:"left", marbella:"left", obarrio:"top", casco:"left", albrook:"left", clayton:"left", condado:"left", gorgona:"left", blanca:"left", buena:"bottom"};
 
 const NEG = 0.09;
+const HOA = 1.72;
 const fmt = n => n==null ? "—" : "$" + Math.round(n).toLocaleString("en-US");
 const fmt2 = n => n==null ? "—" : "$" + n.toFixed(1);
 function chans(z){ return [z.e24, z.mls, z.bank].filter(v => v!=null); }
@@ -237,6 +294,7 @@ function showPanel(z){
       <div class="stat"><div class="v">${c?fmt(c):"—"}</div><div class="l">Likely closing price (−9% average negotiation)</div></div>
       <div class="stat"><div class="v">${r?fmt2(r):"—"}</div><div class="l">${r?"Rent per m² per month (portal average)":(z.rentNote||"Rent: sample too small")}</div></div>
       <div class="stat"><div class="v">${g?g.toFixed(1)+"%":"—"}</div><div class="l">${g?"Gross yield on asking price":"Yield: no two reliable rent sources"}</div></div>
+      ${r?`<div class="stat wide"><div class="v" style="font-size:18px">≈ ${Math.round(HOA/r*100)}% of rent</div><div class="l">Typical HOA fee ($${HOA}/m² per month) as a share of this area's rent. Property tax adds about 5% more. <a href="#costs">See costs</a></div></div>`:""}
       <div class="stat wide"><div class="v" style="font-size:18px">${z.air}</div><div class="l">${z.g==="ciudad" ? "To Tocumen Airport by car, without traffic (approx. " + z.airKm + " km)" : "Approximate travel time"}</div></div>
     </div>
     <div class="links"><a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Open in Google Maps</a><a href="https://earth.google.com/web/search/${q}" target="_blank" rel="noopener">View in Google Earth</a></div>
@@ -274,6 +332,26 @@ function drawTable(){
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => setView(b.dataset.view));
 setView("ciudad");
 drawTable();
+function propTax(v){ let t=0; if(v>30000) t+=(Math.min(v,250000)-30000)*0.006; if(v>250000) t+=(Math.min(v,500000)-250000)*0.008; if(v>500000) t+=(v-500000)*0.01; return t; }
+function incomeTax(n){ if(n<=11000) return 0; if(n<=50000) return (n-11000)*0.15; return 5850+(n-50000)*0.25; }
+function calc(){
+  const g = id => +document.getElementById(id).value || 0;
+  const price=g("c_price"), m2=g("c_m2"), rent=g("c_rent"), hoa=g("c_hoa"), vac=g("c_vac"), mg=g("c_mgmt")/100;
+  const grossR = rent*12, collected = rent*(12-vac);
+  const items = [["Gross rent (12 months)", grossR],["Vacancy", -(grossR-collected)],["HOA fee", -hoa*m2*12],["Property manager", -collected*mg],["Repairs and reserve (5%)", -grossR*0.05],["Insurance", -250],["Property tax", -propTax(price)]];
+  const noi = items.reduce((a,b)=>a+b[1],0), it = incomeTax(Math.max(noi,0)), net = noi-it;
+  const pct = v => price ? (v/price*100).toFixed(1)+"%" : "—";
+  const f = v => (v<0?"−":"")+"$"+Math.abs(Math.round(v)).toLocaleString("en-US");
+  document.getElementById("c_out").innerHTML = items.map(([k,v]) => `<tr class="${v<0?"neg":""}"><td>${k}</td><td>${f(v)}</td></tr>`).join("")
+   + `<tr class="tot"><td>Net before income tax (${pct(noi)})</td><td>${f(noi)}</td></tr>`
+   + `<tr class="neg"><td>Income tax (estimate)</td><td>${f(-it)}</td></tr>`
+   + `<tr class="tot"><td>Net after tax (${pct(net)})</td><td>${f(net)}</td></tr>`
+   + `<tr><td>Gross yield</td><td>${pct(grossR)}</td></tr>`
+   + `<tr><td>Costs as share of gross rent</td><td>${grossR? Math.round((grossR-noi)/grossR*100)+"%":"—"}</td></tr>`;
+}
+document.querySelectorAll(".calc input").forEach(i => i.addEventListener("input", calc));
+calc();
+
 </script>
 </body>
 </html>
